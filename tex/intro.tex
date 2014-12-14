@@ -1,0 +1,12 @@
+\chapter{Introduction}
+\section{What Are These Libraries?}
+First, lets clarify what the libraries we are using actually are, since this alone can generate some confusion. We will first consider the C++ libraries.
+
+The \textbf{BLAS} (Basic Linear Algebra Subprogams) are a set of highly optimized routines for common linear algebra computations like matrix-vector and matrix-matrix multiplication, Givens rotations, and norm computation. \textbf{LAPACK} (Linear Algebra PACKage) is a set of higher linear algebra routines like matrix factorizations, eigenvalue problems, and linear system solvers. LAPACK is written to perform most computations using the BLAS library, so that they are fast. \textbf{Armadillo} and \textbf{Eigen} are open source linear algebra libraries for C++ which are often used in industry.
+
+Python programmers - or `Pythonistas', as they prefer to be called - have a set of guiding principles\footnote{https://www.python.org/dev/peps/pep-0020/}. One of them is that ``There should be on -- and preferably only one -- obvious way to do it." This is of course in contrast to C++ in which, when you need to do something as rudimentary as multiply two matrices, you have hundreds of available linear algebra libraries, many with similar performance, and many with awfully confusing syntax. This all being said, it should not surprise us that there are very few ways of doing linear algebra computations in Python. We will cover the \textbf{Numpy} and \textbf{Scipy} libraries which are the numerical computing and scientific computing libraries, respectively, and see how one can also use the \textbf{BLAS}.
+
+\section{Format}
+We will begin each section with a piece of code with no explanation. We will see its results and the comparison between its run time and the run time of competing libraries. Then we will begin to look in depth at the syntax of the code, notice the pros and cons, and analyze the operation being performed.
+
+All of the code in this paper can be found online at \url{https://github.com/JulianCienfuegos}. Julian Aureliano Cienfuegos is the pseudonym and online identity of Melvyn Drag.

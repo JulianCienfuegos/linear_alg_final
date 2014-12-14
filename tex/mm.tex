@@ -1,0 +1,253 @@
+\chapter{Dense Matrix Multiplication}
+\section{C++}
+\subsection{Code}
+\begin{center}
+\textbf{This is the code we will be discussing in this section.}
+\begin{lstlisting}
+/*
+ * This code surveys matrix multiplication in C++
+ * 
+ * 
+ * BLAS
+ * Tiled MM on one core
+ * Tiled MM on multiple cores
+ * Armadillo MM
+ * Eigen MM
+ * 
+ * are what we will experiment with.
+ * 
+ * Compilation Instructions: 
+ * g++ -I /usr/local/include/eigen3 CompareMM.cpp -larmadillo -lblas -o MM
+ * 
+ * Where -I /usr/local/include/eigen3 is the path to your Eigen directory.
+ * 
+ */  
+
+#include <stdio.h>
+#include <ctime>
+#include <armadillo>
+#include <omp.h>
+#include <Eigen/Dense>
+
+#define bSize 64
+#define NITER 1
+int N = 1024;
+
+/*
+ * The function dgemm() performs one multiplication of the form 
+ * C = alpha*A*B + beta*C. Below we will set alpha to 1 and beta to zero.
+ */
+
+extern ``C" void dgemm_(char *transa, char *transb, int *m, int *n, int* k, 
+			 double *alpha, double *A, int *lda, double *B, int *ldb,
+			 double *beta,  double *C, int *ldc ); 
+
+
+void BMM(double **, double **, double **);
+void omp_BMM(double **, double **, double **);
+
+using namespace std;
+using namespace arma;
+using Eigen::MatrixXd;
+
+int main(int argc, char * argv[])
+{
+/************************ MAKE MATRICES **************************/
+/*                         C++ 2D ARRAY                          */
+double ** A_block = new double * [N];
+double ** B_block = new double * [N];
+double ** C_block = new double * [N];
+
+for(int i = 0; i < N; i++)
+{
+	A_block[i] = new double [N];
+	B_block[i] = new double [N];
+	C_block[i] = new double [N];
+}
+srand(time(NULL));
+for(int i = 0; i < N; i++)
+	for (int j = 0; j < N; j++)
+	{
+		A_block[i][j] = (double)(rand()%100);
+		B_block[i][j] = (double)(rand()%100);
+	}	
+	
+/*                        C++ 1D ARRAY                           */
+double * A_blas = new double [N*N];
+double * B_blas = new double [N*N];
+double * C_blas = new double [N*N];
+for (int i = 0; i < N*N; i++)
+{
+	A_blas[i] = (double)(rand()%100);
+	B_blas[i] = (double)(rand()%100);
+}
+
+/*                         ARMADILLO MATRICES                    */
+mat A = randu<mat>(N, N);
+mat B = randu<mat>(N, N);
+mat C = zeros(N,N);
+
+/*                          EIGEN MATRICES                       */
+
+MatrixXd A_eigen = MatrixXd::Random(N,N);
+MatrixXd B_eigen = MatrixXd::Random(N,N);
+MatrixXd C_eigen = MatrixXd::Zero(N,N);
+
+/*                         OTHER VARIABLES                       */
+double run_times[5];
+clock_t start, stop;
+char trans = 't';
+double alpha = 1;
+double beta = 0;
+/*                           BEGIN COMPARE!                      */
+
+printf("Running BMM...\n");
+start = clock();
+for(int i = 0; i < NITER; i++)
+	BMM(A_block, B_block, C_block);
+stop = clock();
+run_times[0] = (double)(stop - start)/(NITER*CLOCKS_PER_SEC);
+
+printf("Running omp_BMM...\n");
+start = clock();
+for(int i = 0; i < NITER; i++)
+	omp_BMM(A_block, B_block, C_block);
+stop = clock();
+run_times[1] = (double)(stop - start)/(NITER*CLOCKS_PER_SEC);
+
+printf("Running Armadillo MM...\n");
+start = clock();
+for(int i = 0; i < NITER; i++)
+	C = A*B;
+stop = clock();
+run_times[2] = (double)(stop - start)/(NITER*CLOCKS_PER_SEC);
+
+printf("Running BLAS...\n");
+start = clock();
+for(int i = 0; i < NITER; i++)
+	dgemm_(&trans, &trans, &N, &N, &N, &alpha, A_blas, &N, B_blas,\
+		&N, &beta, C_blas, &N);
+stop = clock();
+run_times[3] = (double)(stop - start)/(NITER*CLOCKS_PER_SEC);
+
+printf("Running Eigen...\n");
+start = clock();
+for(int i = 0; i < NITER; i++)
+	C_eigen = A_eigen*B_eigen;
+stop = clock();
+run_times[4] = (double)(stop - start)/(NITER*CLOCKS_PER_SEC);
+	
+printf("BMM: %f\nomp_BMM: %f \nArmadillo: %f\nBLAS: %f\nEigen: %f\n", \
+	run_times[0], run_times[1], run_times[2], run_times[3], run_times[4]);
+
+}
+
+void BMM(double ** A, double ** B, double ** C)
+{
+/* Block Matrix Multiply */
+for(int i = 0; i < N; i += bSize)
+	for(int k = 0; k < N; k += bSize)
+		for(int j = 0; j < N; j += bSize)
+			for(int it = i; it < i+bSize; it++)
+				for(int kt = k; kt < k+bSize; kt++)
+					for(int jt = j; jt < j+bSize; jt++)
+					{
+						C[it][jt] += A[it][kt]*B[kt][jt];
+					}
+}
+
+
+void omp_BMM(double ** A, double ** B, double ** C)
+{
+int i, j, k, it, jt, kt;
+/* openMP version of BMM */
+#pragma omp parallel shared(A,B,C), private(i,j,k, it, jt, kt)
+{
+#pragma omp for schedule(static)
+for(int i = 0; i < N; i += bSize)
+	for(int k = 0; k < N; k += bSize)
+		for(int j = 0; j < N; j += bSize)
+			for(int it = i; it < i+bSize; it++)
+				for(int kt = k; kt < k+bSize; kt++)
+					for(int jt = j; jt < j+bSize; jt++)
+						C[it][jt] += A[it][kt]*B[kt][jt];
+}
+}
+
+\end{lstlisting}
+\textbf{Results}
+\begin{lstlisting}
+(With -O3 optimization)
+BMM: 1.654067
+omp_BMM: 1.621354 
+Armadillo: 1.439744
+BLAS: 1.430144
+Eigen: 0.644094
+(With no compiler optimization)
+BMM: 7.912810
+omp_BMM: 7.815276 
+Armadillo: 1.446131
+BLAS: 1.428944
+Eigen: 24.925716
+
+\end{lstlisting}
+\end{center}
+
+\subsection{Tiled Matrix multiplication}
+This is an implementation of matrix multiplication written in pure C++, with the tile size carefully chosen so that whole tiles can fit in my computers L1 cache. I have chosen different tile sizes on different computers, and choosing an optimal tile size depends on the particular machine being used. 
+\subsection{BLAS}
+\subsection{Armadillo}
+\section{Python}
+\section{Code}
+\begin{center}
+\textbf{Here is the code we will be discussing.}
+\begin{lstlisting}
+""" In this script we will see how to compute matrix - matrix products
+using numpy and scipy.linalg.BLAS 
+
+From the output we see the python methods are similar.
+"""
+
+from numpy import matrix, array, dot, zeros
+from numpy.random import random
+from scipy.linalg.blas import dgemm
+import time
+
+N = 1024
+NITER = 30
+
+A_array = random((N,N))
+B_array = random((N,N))
+C_array = zeros((N,N))
+
+start = time.time()
+for it in range(NITER):
+	C_array = dot(A_array,B_array)
+stop = time.time()
+
+print"Time for 2d array dot product is:", (stop - start)/NITER
+
+A_mat = matrix(A_array)
+B_mat = matrix(B_array)
+C_mat = matrix(C_array)
+
+start = time.time()
+for it in range(NITER):
+	C_mat = A_mat*B_mat
+stop = time.time()
+print "Time for Matrix multiplication is:", (stop-start)/NITER
+
+alpha = 1
+start = time.time()
+for it in range(NITER):
+	C_array = dgemm(alpha, A_array, B_array)
+stop = time.time()
+print "Time for dgemm is:", (stop-start)/NITER
+\end{lstlisting}
+\textbf{Results}
+\begin{lstlisting}
+Time for 2d array dot product is: 0.299135661125
+Time for Matrix multiplication is: 0.304835136731
+Time for dgemm is: 0.367184797923
+\end{lstlisting}
+\end{center}
