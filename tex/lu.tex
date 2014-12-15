@@ -13,7 +13,8 @@
  * Armadillo
  * Eigen
  * 
- * Compile with: g++ -I /usr/local/include/eigen3 CompareLU.cc -larmadillo -llapack -O3 -o CompareLU
+ * Compile with: g++ -I /usr/local/include/eigen3 CompareLU.cc \
+ *            -larmadillo -llapack -O3 -o CompareLU
  */
 
 #include <iostream>
@@ -174,7 +175,8 @@ int main()
 		for (int i = 0; i < N; i++)
 			b_blas[i] = (double)(rand()%100);
 		dgetrf_(&dim, &dim, A_blas, &LDA, ipiv, &info);
-		dgetrs_(&trans, &dim, &nrhs, A_blas, &LDA, ipiv, b_blas, &LDB, &info);
+		dgetrs_(&trans, &dim, &nrhs, A_blas, &LDA, \
+			ipiv, b_blas, &LDB, &info);
 	}
 	stop = clock();
 	clock_t start1 = clock();
@@ -195,7 +197,8 @@ int main()
 	for(int iter = 0; iter < num_iters; iter++)
 	{
 		lu(L_arma, U_arma, P_arma, A_arma);
-		x_arma = solve(trimatu(U_arma), solve(trimatl(L_arma), P_arma*b_arma));	
+		x_arma = solve(trimatu(U_arma), solve(trimatl(L_arma), \
+			P_arma*b_arma));	
 	}
 	stop = clock();
 	run_times[2] = (double)(stop - start)/(num_iters*CLOCKS_PER_SEC);
@@ -332,10 +335,20 @@ And here are the inputs for dgetrs:
 \item  IPIV - the pivot matrix for A.
 \item INFO - The same as above.
 \end{enumerate}
-\subsection{Armadillo}
-The Armadillo library does not have an LU solver, but it does have a solver routine which uses an unspecified decomposition to solve the linear system.
-\subsection{Eigen}
 
+\subsection{Armadillo}
+The Armadillo library does not have an LU solver, but it does have a solver routine which uses an unspecified decomposition to solve the linear system. Therefore, I had to use a bit of trick to solve the system. I used the Armadillo lufactor routine, and then use the solve() routine to solve the corresponding triangular systems. Below you can see that the lu routine takes in three blank arrays to store the L U and P arrays, and the array A to be factored. Then, on the next line you can see how I chained together two solve()s in order to solve the triangular systems. Armadillo does not over write A and in this way loses a bit of performance due to memory transfers, but even for a square matrix of order 1024, the effect of the extra matrices is negligible when one compares this routine to the performance of the pure BLAS routine.
+\begin{lstlisting}
+lu(L_arma, U_arma, P_arma, A_arma);
+x_arma = solve(trimatu(U_arma), solve(trimatl(L_arma), P_arma*b_arma));	
+\end{lstlisting}
+Once again, Armadillo offers a clear, concise syntax and relatively fast code.
+
+\subsection{Eigen}
+I had some brief difficulty using the LU solver from Eigen. I had to dig around online forums in order to find out how to factorize the matrix and then again to figure out how to solve the system. It turns out that the two functions can be chained together, as is seen in the above code. In the end, this makes for very clean code. 
+The next difficulty I came across was deciding what part of the Eigen namespace to use. The partial pivoting routine is called lu(), but in order to use this routine one needs the line \textbf{using Eigen::PartialPivLU}, which is somewhat unituitive. I found the Armadillo documentation much easier to navigate, and had no issue when importing specific Armadillo functions. 
+
+As we saw with the Eigen matrix multiplier, the lu solver is very slow without optimization, and then inexplicably fast when compiler optimization is used. I would like to read the Eigen source code to see why this happens. It could be that Eigen uses some form of parallelism, or that it has some other trick.
 
 \section{Python}
 \subsection{Code}
@@ -380,3 +393,6 @@ Time for scipy routine is 0.147462892532
 Time for LAPACK routine is 0.144656896591
 \end{lstlisting}
 \end{center}
+\subsection{A brief discussion of the Results}
+True to the python philosophy, there is really only one way to solve a problem using LU factorization in Python. Much of scipy is built upon the BLAS and LAPACK, and it turns out that the scipy lu\_solve() and lu\_factor() routines are nothing more than front ends to the LAPAK functions dgetrf and dgetrs. As you can see above, the run time is the same for the LAPACK and the Scipy routines. Indeed, one can read the Scipy source code to confirm this suspicion. This entire Scipy source code is on GitHub.
+Interestingly enough, the Python codes outperform the equivalent C++ codes again. This could be due to the g++ compiler, or it could be attributable to some other reason. The deserves more experimentation on more computers, and with other compilers. This experiment would be particularly interesting to perform with the ICC compiler. 

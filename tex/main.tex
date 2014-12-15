@@ -4,10 +4,12 @@
 \usepackage[left=1in, right=1in, top=1in]{geometry}
 \usepackage{amsmath}
 \usepackage{url}
-
+\usepackage{graphicx}
 \title{\textbf{Using Linear Algebra Libraries in C++ and Python}}
 \author{Melvyn Ian Drag}
 \date{\today}
+
+\allowdisplaybreaks
 
 \begin{document}
 \maketitle
@@ -15,11 +17,11 @@
 % Abstract
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{abstract}
-In this paper I will describe what BLAS, LAPACK, Armadillo and Eigen are. Then I will show how to write C++ code which uses these libraries to perform common linear algebra operations like matrix-matrix, and matrix-vector multiplication, and LU factorization. I will then compare the run\_time of the multiplication codes to some cache efficient code I have written to (hopefully) show the the incredible speed ups possible with these libraries. 
+In this paper I will describe what BLAS, LAPACK, Armadillo, Eigen, and OpenMP are. Then I will show how to write C++ code which uses these libraries to perform common linear algebra operations like matrix-matrix, and LU factorization. I will then compare the run\_time of the codes to some cache efficient code I have written to (hopefully) show the incredible speed ups possible with these libraries. 
 
 Many people on stackoverflow.com are clamoring for a paper such as this one. I plan on posting a link to this paper in response to several questions I have seen online.
 
-I will also show how these libraries are utilized in a correctly built scipy/numpy  package, demonstrating that scientific python codes can indeed run fast.
+I will also show how these libraries are utilized in a correctly built scipy/numpy  package, demonstrating that scientific python codes can indeed run fast. In fact, my Python code outperforms my C++ code!
 \end{abstract}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Dedication
@@ -28,7 +30,7 @@ I will also show how these libraries are utilized in a correctly built scipy/num
  \newgeometry{textwidth=10cm}
  \emph{I looked around and could only find these two webpages with some simple examples. I wish more people would add examples of codes to use these libraries. }- makhlaghi, Stackoverflow.com user.\\
 
-This paper is for you, and for all of those like you (including myself) who have been confused about how to use these popular but suprisingly poorly documented libraries! In this paper are some simple sample codes which demonstrate how to incorporate various libraries into your codes, and then how to compile with them.
+This paper is for makhlagi, and for all of those like you (including myself) who have been confused about how to use these popular but suprisingly poorly documented libraries! In this paper are some simple sample codes which demonstrate how to incorporate various linear algebra packages into your codes, and then how to compile with them.
 
 \restoregeometry
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -39,4 +41,5 @@ This paper is for you, and for all of those like you (including myself) who have
 \input{./mm.tex}
 \input{./lu.tex}
 \input{./Conclusion.tex}
+\input{./ref.tex}
 \end{document}
