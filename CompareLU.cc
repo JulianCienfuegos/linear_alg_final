@@ -7,7 +7,7 @@
  * Armadillo
  * Eigen
  * 
- * Compile with: g++ -I /usr/local/include/eigen3 CompareLU.cc -larmadillo -llapack -lblas -o CompareLU
+ * Compile with: g++ -I /usr/local/include/eigen3 CompareLU.cc -larmadillo -llapack -O3 -o CompareLU
  */
 
 #include <iostream>
@@ -18,11 +18,12 @@
 #include <Eigen/Dense>
 
 int N = 1024;
-const int num_iters = 1;
+const int num_iters = 10;
 
-
-extern "C" void dgetrf_(int* dim1, int* dim2, double* a, int* lda, int* ipiv, int* info);
-extern "C" void dgetrs_(char *TRANS, int *N, int *NRHS, double *A, int *LDA, int *IPIV, double *B, int *LDB, int *INFO );
+extern "C" void dgetrf_(int* dim1, int* dim2, double* a, int* lda, \
+	int* ipiv, int* info);
+extern "C" void dgetrs_(char *TRANS, int *N, int *NRHS, double *A, \
+	int *LDA, int *IPIV, double *B, int *LDB, int *INFO );
 
 using namespace std;
 using namespace arma;
@@ -104,9 +105,6 @@ int main()
 	clock_t start, stop;
 
 	/************************** MY SOLVER *****************************/
-int yes = 0;
-if(yes == 1)
-{
 	printf("Running My Solver...\n");
 	start = clock();
 	for(int iter = 0; iter < num_iters; iter++)
@@ -144,8 +142,7 @@ if(yes == 1)
 		/* Now we can do what we want with the x! */
 	}
 	stop = clock();
-	run_times[0] = (stop - start)/(num_iters*CLOCKS_PER_SEC);
-}	
+	run_times[0] = (double)(stop - start)/(num_iters*CLOCKS_PER_SEC);
 	/* We can clean up a bit */
 	for (int i = 0; i < N; i++)
 	{
@@ -164,7 +161,7 @@ if(yes == 1)
 	delete[] y;
 	
 	/*********************** BLAS SOLVER ******************************/
-	printf("Running BLAS...\n ");
+	printf("Running BLAS...\n");
 	start = clock();
 	for(int iter = 0; iter < num_iters; iter++)
 	{
@@ -182,7 +179,7 @@ if(yes == 1)
 	}
 	clock_t stop1 = clock();
 	run_times[1] = (double)(stop - start)/(num_iters*CLOCKS_PER_SEC);
-	run_times[1] -= (double)(stop1 - start)/(num_iters*CLOCKS_PER_SEC);
+	run_times[1] -= (double)(stop1 - start1)/(num_iters*CLOCKS_PER_SEC);
 	delete[] A_blas;
 	delete[] b_blas;
 	
@@ -199,7 +196,7 @@ if(yes == 1)
 	
 	/************************** EIGEN *********************************/
 	printf("Running Eigen...\n");
-	/*
+	
 	start = clock();
 	for(int iter = 0; iter < num_iters; iter++)
 	{
@@ -207,9 +204,9 @@ if(yes == 1)
 	}
 	stop = clock();
 	run_times[3] = (double)(stop - start)/(num_iters*CLOCKS_PER_SEC);
-	*/
+	
 	/********************* PRINT RESULTS ******************************/
-	printf("My Solver: %+.0e\nBLAS: %+.0e \nArmadillo: %+.0e\nEigen: %+.0e\n", \
+	printf("My Solver: %f\nBLAS: %f \nArmadillo: %f\nEigen: %f\n", \
 		run_times[0], run_times[1], run_times[2], run_times[3]);
 }
 
